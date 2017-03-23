@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.mhackner</groupId>
     <artifactId>bamboo-github-status</artifactId>
-    <version>1.3-SNAPSHOT</version>
+    <version>1.8-SNAPSHOT</version>
 
     <organization>
         <name>Michael Hackner</name>
@@ -23,9 +23,9 @@
     </scm>
 
     <properties>
-        <bamboo.version>5.9.1</bamboo.version>
-        <bamboo.data.version>5.9.1</bamboo.data.version>
-        <amps.version>5.1.18</amps.version>
+        <bamboo.version>5.15.3</bamboo.version>
+        <bamboo.data.version>5.15.3</bamboo.data.version>
+        <amps.version>6.2.11</amps.version>
         <plugin.testrunner.version>1.2.3</plugin.testrunner.version>
     </properties>
 
@@ -48,9 +48,15 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>4.10</version>
+            <groupId>org.spockframework</groupId>
+            <artifactId>spock-core</artifactId>
+            <version>1.0-groovy-2.4</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>cglib</groupId>
+            <artifactId>cglib-nodep</artifactId>
+            <version>3.2.0</version>
             <scope>test</scope>
         </dependency>
 
@@ -85,6 +91,18 @@
                     <productVersion>${bamboo.version}</productVersion>
                     <productDataVersion>${bamboo.data.version}</productDataVersion>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.gmavenplus</groupId>
+                <artifactId>gmavenplus-plugin</artifactId>
+                <version>1.5</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>testCompile</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
 
             <plugin>

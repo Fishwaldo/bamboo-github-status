@@ -1,8 +1,11 @@
 package com.mhackner.bamboo;
 
-import com.atlassian.bamboo.plan.AbstractChain;
 import com.atlassian.bamboo.plan.Plan;
+import com.atlassian.bamboo.plan.PlanKeys;
+import com.atlassian.bamboo.plan.PlanManager;
 import com.atlassian.bamboo.plan.TopLevelPlan;
+import com.atlassian.bamboo.plan.cache.ImmutableChain;
+import com.atlassian.bamboo.plan.cache.ImmutablePlan;
 import com.atlassian.bamboo.plugins.git.GitHubRepository;
 import com.atlassian.bamboo.repository.RepositoryDefinition;
 import com.atlassian.bamboo.v2.build.BaseBuildConfigurationAwarePlugin;
@@ -25,24 +28,33 @@ public class Configuration extends BaseBuildConfigurationAwarePlugin
 
     static final String CONFIG_KEY = "custom.gitHubStatus.repositories";
 
-    private Plan plan;
+    /** Predicate that controls whether a repo is selected in the absence of any configuration. */
+    static final Predicate<RepositoryDefinition> DEFAULT_REPO_PREDICATE =
+            new Predicate<RepositoryDefinition>() {
+                @Override
+                public boolean apply(RepositoryDefinition input) {
+                    return input.getPosition() == 0;
+                }
+            };
+
+    private PlanManager planManager;
+
+    public void setPlanManager(PlanManager planManager) {
+        this.planManager = planManager;
+    }
 
     @Override
     public boolean isApplicableTo(@NotNull Plan plan) {
-        this.plan = plan;
         return plan instanceof TopLevelPlan;
     }
 
     @Override
     public void addDefaultValues(@NotNull BuildConfiguration buildConfiguration) {
-        buildConfiguration.setProperty(CONFIG_KEY, Lists.transform(
-                ghReposFrom(plan),
-                new Function<RepositoryDefinition, Long>() {
-                    @Override
-                    public Long apply(RepositoryDefinition input) {
-                        return input.getId();
-                    }
-                }));
+        Plan plan = planManager.getPlanByKey(PlanKeys.getPlanKey(buildConfiguration.getString("buildKey")));
+        RepositoryDefinition repo = Iterables.find(ghReposFrom(plan), DEFAULT_REPO_PREDICATE, null);
+        buildConfiguration.setProperty(CONFIG_KEY, repo == null
+                ? ImmutableList.of()
+                : ImmutableList.of(repo.getId()));
     }
 
     @Override
@@ -66,7 +78,7 @@ public class Configuration extends BaseBuildConfigurationAwarePlugin
         }
     }
 
-    private static List<Long> toList(Object object) {
+    static List<Long> toList(Object object) {
         String string = object.toString();
         if (string.equals("false") || string.equals("[]")) {
             return ImmutableList.of();
@@ -83,9 +95,9 @@ public class Configuration extends BaseBuildConfigurationAwarePlugin
         });
     }
 
-    static List<RepositoryDefinition> ghReposFrom(Plan plan) {
+    static List<RepositoryDefinition> ghReposFrom(ImmutablePlan plan) {
         return ImmutableList.copyOf(Iterables.filter(
-                ((AbstractChain) plan).getEffectiveRepositoryDefinitions(),
+                ((ImmutableChain) plan).getEffectiveRepositoryDefinitions(),
                 new Predicate<RepositoryDefinition>() {
                     @Override
                     public boolean apply(RepositoryDefinition input) {
